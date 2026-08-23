@@ -1,0 +1,29 @@
+[client]
+# Garde le menu natif Streamlit (theme toggle, print, record screen...)
+# mais réduit aux options essentielles — repositionné visuellement
+# dans la bande topbar via ge_design_kit.layout (pas masqué).
+
+[theme]
+# Couleurs de base GE-DESIGN
+primaryColor = "#185FA5"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F1EFE8"
+# on-surface réel (--md-ref-palette-neutral-10 = rgba(29,36,43,1) = #1D242B)
+# — fallback donné par Figma pour h1/h2/h3
+textColor = "#1D242B"
+linkColor = "#185FA5"
+
+font = "Roboto, sans-serif"
+headingFont = "Roboto, sans-serif"
+
+# Tailles h1/h2/h3 alignées sur Headline Large (40px) / Headline Small (28px) x2
+# h4-h6 non spécifiés : gardent les valeurs par défaut Streamlit
+headingFontSizes = ["40px", "28px", "28px"]
+headingFontWeights = [700, 700, 700]
+
+baseRadius = "6px"
+borderColor = "#CBD5E0"
+showWidgetBorder = true
+
+[theme.sidebar]
+backgroundColor = "#F7FAFC"

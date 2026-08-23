@@ -1,0 +1,4 @@
+# Dépendances de développement uniquement — pas nécessaires pour lancer
+# l'app, seulement pour lancer les tests (tests/).
+-r requirements.txt
+pytest>=8.0
