@@ -37,7 +37,7 @@ SURFACE_VARIANTS = {
         "key_prefix": "ge-surface-inset-",
         "css": """
             border-radius: var(--md-sys-shape-corner-medium);
-            background: var(--md-sys-color-surface-bright);
+            background: var(--md-sys-color-surface-container-lowest);
             padding: calc(var(--spacing) * 4) calc(var(--spacing) * 6);
             gap: 0.5rem;
         """,

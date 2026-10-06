@@ -84,7 +84,7 @@ BUTTONS_CSS = f"""
 [class*="st-key-{OUTLINED_BUTTON_KEY_PREFIX}"] button {{
     border-radius: var(--md-sys-shape-corner-full) !important;
     border: 1px solid var(--md-sys-color-outline) !important;
-    background: var(--md-sys-color-surface) !important;
+    background: transparent !important;
     color: var(--md-sys-color-primary) !important;
     font-weight: 500 !important;
     padding: calc(var(--spacing) * 2) 1rem !important;

@@ -12,13 +12,10 @@ _ge_kpi = st.components.v2.component(
     html="""<div class="ge-kpi"><div class="ge-kpi-num" id="ge-kpi-num"></div><div class="ge-kpi-lbl" id="ge-kpi-lbl"></div></div>""",
     css="""
     .ge-kpi {
-        background: var(--md-sys-color-surface, var(--st-secondary-background-color));
+        background: var(--md-sys-color-surface-container-highest, var(--st-secondary-background-color));
         border-radius: var(--md-sys-shape-corner-medium, var(--st-base-radius));
         padding: 0.5rem 1rem;
         font-family: var(--st-font);
-        /* Elevation shadow/2 */
-        box-shadow:
-            0 1px 2px 0 rgba(24, 31, 37, 0.30);
     }
     .ge-kpi-num {
         font-size: 22px;

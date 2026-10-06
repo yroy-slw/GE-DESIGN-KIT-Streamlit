@@ -43,6 +43,3 @@ Thumbs.db
 *.log
 .env
 .env.local
-
-# ── Claude Code (état/lock local, pas du config projet) ──
-.claude/

@@ -4,18 +4,30 @@ from data import load_operations_df
 from ge_design_kit import (
     ge_breadcrumb, ge_surface, ge_label_spacer, ICON_BUTTON_KEY_PREFIX,
     PILL_BUTTON_KEY_PREFIX, TEXT_BUTTON_KEY_PREFIX, ge_kpi, GE_TOGGLE_KEY_PREFIX,
+    ge_upload_dropzone, FILLED_BUTTON_KEY_PREFIX,
 )
+
+# ── has_operations: état vide vs peuplé (cf. Figma "01 - E01 -
+# Operation - Empty", node 255:1793). Par défaut False: un utilisateur
+# arrive sur cette page SANS opération importée, c'est à lui de les
+# importer (via ge_upload_dropzone ou le bouton "Importer
+# manuellement"). Pour l'instant la seule façon de passer à True est
+# le bouton démo dans _import_manuel_dialog plus bas — le vrai import
+# (parsing du fichier) sera branché avec la modale, à l'étape
+# suivante. ──
+if "has_operations" not in st.session_state:
+    st.session_state.has_operations = False
 
 # ── Compteur de sélection (placeholder — sera piloté par les cases à
 # cocher du futur tableau d'opérations) ──
 if "selected_count" not in st.session_state:
     st.session_state.selected_count = 0
-# ── Compteur de reset : incrémenté à chaque clic sur "Annuler la
+# ── Compteur de reset: incrémenté à chaque clic sur "Annuler la
 # sélection". Utilisé pour construire une clé DYNAMIQUE pour
 # st.dataframe (cf. table_key plus bas), changer la clé force
 # Streamlit à traiter le tableau comme un widget entièrement NOUVEAU,
 # sans aucun état résiduel. Plus robuste que réécrire directement
-# st.session_state["operations_table"] : cette dernière approche
+# st.session_state["operations_table"]: cette dernière approche
 # fonctionnait la première fois mais pas la seconde (Streamlit semble
 # garder un état de sélection interne qu'un simple écrasement du
 # dict ne suffit pas à effacer de façon fiable et répétée). ──
@@ -33,11 +45,11 @@ with st.container(key="ge-header-row"):
 with title_col:
     st.title("Sélectionner une opération")
 with action_col:
-    # Alignement à droite géré par layout.py — cf. règle CSS
-    # .st-key-ge-header-row [data-testid="stColumn"]:last-child.
-    # Pas besoin de colonne interne ni de width="stretch" : le bouton
-    # est toujours width:auto (cf. buttons.py), stretch n'aurait aucun
-    # effet visible.
+    # Visible dans les DEUX états (vide et peuplé) — cf. Figma node
+    # 529:58860 (état vide "Aucune opération", bouton quand même
+    # présent sur la ligne du titre). Pas besoin de colonne interne ni
+    # de width="stretch": le bouton est toujours width:auto (cf.
+    # buttons.py), stretch n'aurait aucun effet visible.
     with st.container(key=f"{PILL_BUTTON_KEY_PREFIX}import_manuel"):
         import_clicked = st.button(
             "Importer manuellement",
@@ -48,21 +60,41 @@ with action_col:
 
 @st.dialog("Importer manuellement")
 def _import_manuel_dialog():
-    # Contenu pas encore validé (maquette Figma fournie à titre
-    # d'exemple, cf. ge_design_kit/dialog.py) — placeholder en
-    # attendant. Le style du modal (fond, coins, ombre, titre) est
-    # déjà branché sur GE-DESIGN via inject_ge_styles().
+    # GE-DESIGN via inject_ge_styles(). Contenu réel (dropzone,
+    # st.file_uploader, liste de fichiers...) à construire à l'étape
+    # suivante à partir du Figma de la modale.
     st.info("Contenu à définir.")
+    # ── Affordance TEMPORAIRE le temps de brancher le vrai import:
+    # simule une opération importée pour pouvoir naviguer vers l'état
+    # peuplé sans back-end. A retirer une fois le vrai upload branché. ──
+    if st.button("Simuler un import (démo)", key="btn_import_demo"):
+        st.session_state.has_operations = True
+        st.rerun()
 
 
 if import_clicked:
     _import_manuel_dialog()
 
-# ── Tout le contenu de la page vit dans UNE seule carte GE-DESIGN ──
-with ge_surface("operations"):
-    st.subheader("Choisir la votation à analyser")
+st.header("Lancez ou consultez une analyse calligraphique")
 
-    with ge_surface("kpi-row", variant="inset"):
+if not st.session_state.has_operations:
+    # ── État vide: ni KPI, ni filtres, ni
+    # tableau — juste le dropzone. Tout le reste du fichier (KPI/
+    # filtres/tableau/sélection) reste inchangé dans la branche
+    # ci-dessous, pour l'état peuplé. ──
+    with ge_surface("operations-empty"):
+        dropzone_clicked = ge_upload_dropzone(
+            icon="upload",
+            title="Aucune opération importée pour le moment",
+            subtitle="Glissez un fichier ici",
+            button_label="Importer manuellement",
+            button_icon="upload",
+            key="operations_empty",
+        )
+    if dropzone_clicked:
+        _import_manuel_dialog()
+else:
+    with ge_surface("kpi-row"):
         c1, c2, c3, c4, c5 = st.columns(5)
         with c1:
             ge_kpi(4, "Opérations disponibles", key="kpi_total")
@@ -77,11 +109,11 @@ with ge_surface("operations"):
 
         st.divider()
 
-        # ── Ligne de filtres : widgets natifs, stylés via forms.py ──
+        # ── Ligne de filtres: widgets natifs, stylés via forms.py ──
         with st.container(key="ge-filter-row"):
             fc1, fc3, fc4, fc5, fc6 = st.columns([3.6, 1.3, 1.3, 1.3, 1.8])
             with fc1:
-                # st.form lie le champ et le bouton : Entrée dans le champ
+                # st.form lie le champ et le bouton: Entrée dans le champ
                 # déclenche la même soumission qu'un clic sur le bouton
                 with st.form(key="search-form", border=False):
                     ic1, ic2 = st.columns([5, 1])
@@ -119,115 +151,126 @@ with ge_surface("operations"):
                 with st.container(key=f"{GE_TOGGLE_KEY_PREFIX}filter_done"):
                     show_done = st.toggle("Opérations terminées", value=True, key="filter_done")
 
-    # ── Barre de sélection : réservée ICI visuellement ──
-    selection_bar_slot = st.empty()
+    # ── Tout le contenu de la page vit dans UNE seule carte GE-DESIGN ──
+    with ge_surface("operations"):
+        # ── Barre de sélection: réservée ICI visuellement ──
+        selection_bar_slot = st.empty()
 
-    # ── Tableau des opérations : st.dataframe natif avec sélection ──
-    # réelle (checkboxes gérées par Streamlit, aucun CSS custom). ──
-    # data.py fournit une colonne "id" stable — indispensable pour que
-    # la sélection survive la navigation vers Comparer/Exporter (cf.
-    # data.py pour le pourquoi complet).
-    operations_df = load_operations_df()
+        # ── Tableau des opérations: st.dataframe natif avec sélection ──
+        # réelle (checkboxes gérées par Streamlit, aucun CSS custom). ──
+        # data.py fournit une colonne "id" stable, indispensable pour que
+        # la sélection survive la navigation vers Comparer/Exporter (cf.
+        # data.py pour le pourquoi complet).
+        operations_df = load_operations_df()
 
-    # ── Application des filtres de la ligne au-dessus (recherche/type/ ──
-    # date/canal/toggle) sur les données AVANT de les passer au tableau. ──
-    filtered_df = operations_df.copy()
+        # ── Application des filtres de la ligne au-dessus (recherche/type/ ──
+        # date/canal/toggle) sur les données AVANT de les passer au tableau. ──
+        filtered_df = operations_df.copy()
 
-    # Recherche : n'applique que le terme SOUMIS (via Entrée ou clic sur
-    # la loupe, cf. st.form plus haut) — pas de filtrage à chaque frappe.
-    search_value = st.session_state.get("last_search", "")
-    if search_value:
-        filtered_df = filtered_df[
-            filtered_df["Opération"].str.contains(search_value, case=False, na=False)
-        ]
+        # Recherche: n'applique que le terme SOUMIS (via Entrée ou clic sur
+        # la loupe, cf. st.form plus haut), pas de filtrage à chaque frappe.
+        search_value = st.session_state.get("last_search", "")
+        if search_value:
+            filtered_df = filtered_df[
+                filtered_df["Opération"].str.contains(search_value, case=False, na=False)
+            ]
 
-    if scrutin_type != "Tous":
-        filtered_df = filtered_df[filtered_df["Type de scrutin"] == scrutin_type]
-    if date_filter != "Tous":
-        filtered_df = filtered_df[filtered_df["Date"] == date_filter]
+        if scrutin_type != "Tous":
+            filtered_df = filtered_df[filtered_df["Type de scrutin"] == scrutin_type]
+        if date_filter != "Tous":
+            filtered_df = filtered_df[filtered_df["Date"] == date_filter]
 
-    if canal_filter != "Tous":
-        filtered_df = filtered_df[filtered_df["Canal"] == canal_filter]
+        if canal_filter != "Tous":
+            filtered_df = filtered_df[filtered_df["Canal"] == canal_filter]
 
-    # "Opérations terminées" OFF (défaut) : cache les opérations déjà
-    # analysées — l'utilisateur voit d'abord ce qui demande son attention.
-    if not show_done:
-        filtered_df = filtered_df[~filtered_df["Statut analyse"].str.contains("Analysée")]
+        # "Opérations terminées" OFF (défaut): cache les opérations déjà
+        # analysées, l'utilisateur voit d'abord ce qui demande son attention.
+        if not show_done:
+            filtered_df = filtered_df[~filtered_df["Statut analyse"].str.contains("Analysée")]
 
-    # display_df garde la colonne "id" (nécessaire pour retrouver les
-    # lignes cochées par leur identité stable, pas leur position — cf.
-    # data.py) mais ne l'affiche PAS : column_order plus bas liste
-    # explicitement les colonnes visibles, "id" n'y figure pas.
-    display_df = filtered_df.drop(columns=["Type de scrutin", "Canal"])
+        # display_df garde la colonne "id" (nécessaire pour retrouver les
+        # lignes cochées par leur identité stable, pas leur position, cf.
+        # data.py) mais ne l'affiche PAS: column_order plus bas liste
+        # explicitement les colonnes visibles, "id" n'y figure pas.
+        display_df = filtered_df.drop(columns=["Type de scrutin", "Canal"])
 
-    # La clé change à chaque reset (cf. operations_table_reset_counter
-    # tout en haut du fichier), Streamlit traite alors le tableau comme
-    # un nouveau widget, sans aucune sélection résiduelle possible.
-    table_key = f"operations_table_{st.session_state.operations_table_reset_counter}"
+        # La clé change à chaque reset (cf. operations_table_reset_counter
+        # tout en haut du fichier), Streamlit traite alors le tableau comme
+        # un nouveau widget, sans aucune sélection résiduelle possible.
+        table_key = f"operations_table_{st.session_state.operations_table_reset_counter}"
 
-    event = st.dataframe(
-        display_df,
-        key=table_key,
-        hide_index=True,
-        width="stretch",
-        on_select="rerun",
-        selection_mode="multi-row",
-        column_order=["Opération", "Date", "Statut analyse", "Clusters", "Dernière analyse"],
-        column_config={
-            "Opération": st.column_config.TextColumn("Opération", width="large"),
-            "Clusters": st.column_config.NumberColumn("Clusters", format="%d"),
-        },
-    )
+        event = st.dataframe(
+            display_df,
+            key=table_key,
+            hide_index=True,
+            width="stretch",
+            on_select="rerun",
+            selection_mode="multi-row",
+            column_order=["Opération", "Date", "Statut analyse", "Clusters", "Dernière analyse"],
+            column_config={
+                "Opération": st.column_config.TextColumn("Opération", width="large"),
+                "Clusters": st.column_config.NumberColumn("Clusters", format="%d"),
+            },
+        )
 
-    # event.selection.rows = index DE POSITION dans display_df pour CE
-    # run — jamais stockés tels quels (cf. data.py) : convertis
-    # immédiatement en id stables via .iloc + colonne "id".
-    selected_rows = event.selection.rows
-    selected_ids = display_df.iloc[selected_rows]["id"].tolist() if selected_rows else []
-    st.session_state.selected_count = len(selected_rows)
-    count = st.session_state.selected_count
+        # event.selection.rows = index DE POSITION dans display_df pour CE
+        # run, jamais stockés tels quels (cf. data.py): convertis
+        # immédiatement en id stables via .iloc + colonne "id".
+        selected_rows = event.get("selection", {}).get("rows", [])
+        selected_ids = display_df.iloc[selected_rows]["id"].tolist() if selected_rows else []
+        st.session_state.selected_count = len(selected_rows)
+        count = st.session_state.selected_count
 
-    # ── Remplissage du placeholder réservé plus haut, avec le compte ──
-    # à jour de CE run — même structure/CSS qu'avant, juste déplacée. ──
-    with selection_bar_slot.container():
-        with ge_surface("selection-bar", variant="inset"):
-            with st.container(key="ge-selection-bar-row"):
-                sb_left, sb_right = st.columns(2)
-                with sb_left:
-                    st.markdown(f"**Nombre d'opération(s) sélectionnée(s) : {count}**")
-                    with st.container(key=f"{TEXT_BUTTON_KEY_PREFIX}clear_selection"):
-                        if st.button(
-                            "Annuler la sélection",
-                            icon=":material/close:",
-                            type="tertiary",
-                            disabled=(count == 0),
-                            key="btn_clear_selection",
-                        ):
-                            # Incrémente le compteur -> la clé du tableau change au
-                            # prochain run -> Streamlit le recrée comme un widget
-                            # tout neuf, sans sélection résiduelle possible.
-                            st.session_state.operations_table_reset_counter += 1
-                            st.rerun()
-                with sb_right:
-                    with st.container(key="ge-button-group"):
-                        with st.container(key=f"{PILL_BUTTON_KEY_PREFIX}compare"):
+        # ── Remplissage du placeholder réservé plus haut, avec le compte ──
+        # à jour de CE run — même structure/CSS qu'avant, juste déplacée. ──
+        with selection_bar_slot.container():
+            with ge_surface("selection-bar", variant="inset"):
+                with st.container(key="ge-selection-bar-row", horizontal=True):
+                    sb_left, sb_right = st.columns(2)
+                    with sb_left:
+                        st.markdown(f"**Nombre d'opération(s) sélectionnée(s) : {count}**")
+                        with st.container(key=f"{TEXT_BUTTON_KEY_PREFIX}clear_selection"):
                             if st.button(
-                                "Comparer",
-                                type="secondary",
+                                "Annuler la sélection",
+                                icon=":material/close:",
+                                type="tertiary",
                                 disabled=(count == 0),
-                                key="btn_compare",
+                                key="btn_clear_selection",
                             ):
-                                # session_state, pas les lignes elles-mêmes : la
-                                # page de destination refetch par id (cf. data.py
-                                # et views/comparaison.py).
-                                st.session_state.selected_operation_ids = selected_ids
-                                st.switch_page("views/comparaison.py")
-                        with st.container(key=f"{PILL_BUTTON_KEY_PREFIX}export"):
-                            if st.button(
-                                "Exporter",
-                                type="secondary",
-                                disabled=(count == 0),
-                                key="btn_export",
-                            ):
-                                st.session_state.selected_operation_ids = selected_ids
-                                st.switch_page("views/export.py")
+                                # Incrémente le compteur -> la clé du tableau change au
+                                # prochain run -> Streamlit le recrée comme un widget
+                                # tout neuf, sans sélection résiduelle possible.
+                                st.session_state.operations_table_reset_counter += 1
+                                st.rerun()
+                    with sb_right:
+                        with st.container(key="ge-button-group"):
+                            with st.container(key=f"{FILLED_BUTTON_KEY_PREFIX}analyser"):
+                                # Pas de handler pour le moment (cf. consigne):
+                                # le bouton existe et suit l'état de sélection,
+                                # la logique d'analyse sera branchée plus tard.
+                                st.button(
+                                    "Analyser",
+                                    disabled=(count == 0),
+                                    key="btn_analyser",
+                                )
+                            with st.container(key=f"{PILL_BUTTON_KEY_PREFIX}compare"):
+                                if st.button(
+                                    "Comparer",
+                                    type="secondary",
+                                    disabled=(count == 0),
+                                    key="btn_compare",
+                                ):
+                                    # session_state, pas les lignes elles-mêmes: la
+                                    # page de destination refetch par id (cf. data.py
+                                    # et views/comparaison.py).
+                                    st.session_state.selected_operation_ids = selected_ids
+                                    st.switch_page("views/comparaison.py")
+                            with st.container(key=f"{PILL_BUTTON_KEY_PREFIX}export"):
+                                if st.button(
+                                    "Exporter",
+                                    type="secondary",
+                                    disabled=(count == 0),
+                                    key="btn_export",
+                                ):
+                                    st.session_state.selected_operation_ids = selected_ids
+                                    st.switch_page("views/export.py")

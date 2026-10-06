@@ -4,6 +4,15 @@ ge_design_kit.sidebar
 Sidebar de navigation GE-DESIGN (pattern SuisseVote / MemIA : liste
 d'items icône + libellé, item actif surligné, groupes optionnels).
 
+Deux modes (Figma "MemIA - Header - Desktop" / "... Desktop toggled",
+node 558:2156 / 525:53468) : normal (icône + libellé, 260px) et
+`collapsed` (rail d'icônes seules, 56x56 chacune, cf. layout.py pour
+la largeur de section[data-testid="stSidebar"] assortie). Piloté par
+l'appelant (cf. app.py: st.session_state.sidebar_collapsed, basculé
+par le burger de ge_topbar) — PAS par le collapse natif de
+st.sidebar, qui ne sait faire que montré/caché en entier, pas un
+mode rail à largeur intermédiaire.
+
 Le composant remonte l'id de l'item cliqué via st.session_state
 (pattern trigger CCv2 st.switch_page, ou simple routing par état).
 """
@@ -74,13 +83,39 @@ _ge_sidebar = st.components.v2.component(
         background: var(--md-sys-color-outline-variant);
         margin: calc(var(--spacing) * 3) calc(var(--spacing) * 4);
     }
+
+    /* ── Mode rail (collapsed) : icônes seules, centrées, 56x56 ── */
+    .ge-sidebar.collapsed {
+        align-items: center;
+        gap: calc(var(--spacing) * 3);
+        padding: calc(var(--spacing) * 8) calc(var(--spacing) * 3) calc(var(--spacing) * 3);
+    }
+    .ge-sidebar.collapsed .ge-sidebar-title {
+        display: none;
+    }
+    .ge-sidebar.collapsed .ge-sidebar-item {
+        width: 56px;
+        height: 56px;
+        padding: 0;
+        justify-content: center;
+        border-radius: var(--md-sys-shape-corner-full);
+    }
+    .ge-sidebar.collapsed .ge-sidebar-item .icon {
+        font-size: 24px;
+        width: 24px;
+    }
+    .ge-sidebar.collapsed .ge-sidebar-divider {
+        width: 56px;
+        margin: calc(var(--spacing) * 2) 0;
+    }
     """,
     js="""
     export default function({ parentElement, data, setTriggerValue }) {
         const nav = parentElement.querySelector('#ge-sidebar');
         nav.innerHTML = '';
+        nav.classList.toggle('collapsed', !!data.collapsed);
 
-        if (data.title) {
+        if (data.title && !data.collapsed) {
             const title = document.createElement('div');
             title.className = 'ge-sidebar-title';
             title.textContent = data.title;
@@ -96,6 +131,7 @@ _ge_sidebar = st.components.v2.component(
             }
             const el = document.createElement('div');
             el.className = 'ge-sidebar-item' + (item.id === data.active_id ? ' active' : '');
+            el.title = item.label || '';
 
             // DOM methods + textContent, jamais innerHTML avec des
             // données concaténées — item.label/item.icon viennent de
@@ -106,15 +142,17 @@ _ge_sidebar = st.components.v2.component(
             iconSpan.textContent = item.icon || '';
             el.appendChild(iconSpan);
 
-            const labelSpan = document.createElement('span');
-            labelSpan.textContent = item.label || '';
-            el.appendChild(labelSpan);
+            if (!data.collapsed) {
+                const labelSpan = document.createElement('span');
+                labelSpan.textContent = item.label || '';
+                el.appendChild(labelSpan);
 
-            if (item.has_children) {
-                const chevron = document.createElement('span');
-                chevron.className = 'chevron material-symbols-outlined';
-                chevron.textContent = 'chevron_right';
-                el.appendChild(chevron);
+                if (item.has_children) {
+                    const chevron = document.createElement('span');
+                    chevron.className = 'chevron material-symbols-outlined';
+                    chevron.textContent = 'chevron_right';
+                    el.appendChild(chevron);
+                }
             }
 
             el.onclick = () => setTriggerValue('selected', item.id);
@@ -125,12 +163,21 @@ _ge_sidebar = st.components.v2.component(
 )
 
 
-def ge_sidebar(items: list[dict], title: str = "", active_id: str = "", key: str = "ge_sidebar"):
+def ge_sidebar(
+    items: list[dict],
+    title: str = "",
+    active_id: str = "",
+    collapsed: bool = False,
+    key: str = "ge_sidebar",
+):
     """
     Affiche une sidebar de navigation GE-DESIGN.
 
     items: liste de dicts {id, label, icon, has_children?} ou {divider: True}
     `icon` attend un NOM d'icône Material Symbols (ex: "search", "settings").
+    collapsed: mode rail (icônes seules, cf. docstring du module) —
+    l'appelant doit assortir la largeur de section[data-testid="stSidebar"]
+    (cf. layout.py: inject_ge_layout(sidebar_collapsed=...)).
     Retourne l'id de l'item cliqué durant ce run (ou None).
 
     Exemple :
@@ -150,7 +197,7 @@ def ge_sidebar(items: list[dict], title: str = "", active_id: str = "", key: str
     """
     result = _ge_sidebar(
         key=key,
-        data={"title": title, "items": items, "active_id": active_id},
+        data={"title": title, "items": items, "active_id": active_id, "collapsed": collapsed},
         on_selected_change=lambda: None,
     )
     return result.selected

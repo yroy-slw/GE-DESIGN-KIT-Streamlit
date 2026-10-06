@@ -4,8 +4,8 @@ views/comparaison.py
 Page "Comparer" - atteinte depuis views/operations.py en sélectionnant
 des lignes du tableau puis en cliquant "Comparer". Lit
 st.session_state.selected_operation_ids plutôt que de recevoir les
-lignes en paramètre : c'est cet état, PAS les données elles-mêmes, qui
-doit survivre st.switch_page() — cf. data.py pour pourquoi refetch par
+lignes en paramètre: c'est cet état, PAS les données elles-mêmes, qui
+doit survivre st.switch_page() cf. data.py pour pourquoi refetch par
 id plutôt que stocker les lignes sélectionnées telles quelles.
 """
 
@@ -23,7 +23,7 @@ st.title("Comparer des opérations")
 selected_ids = st.session_state.get("selected_operation_ids", [])
 
 if not selected_ids:
-    # Pas de surface ici : rien à mettre dedans, l'alerte seule suffit
+    # Pas de surface ici: rien à mettre dedans, l'alerte seule suffit
     # (cf. views/export.py, même choix).
     st.warning(
         "Aucune opération sélectionnée. Retournez à la page "

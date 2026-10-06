@@ -1,21 +1,21 @@
 """
-Smoke test — verify every data-testid ge_design_kit's CSS depends on
+Smoke test - verify every data-testid ge_design_kit's CSS depends on
 still exists in the installed Streamlit version's bundled frontend.
 
 Why this exists: ge_design_kit styles Streamlit's NATIVE widgets by
 targeting [data-testid="..."] selectors. It's the least-bad option
-available (see README "Pièges à connaître" — data-testid identifies
+available (see README "Pièges à connaître", data-testid identifies
 Streamlit's own widget type, and there's no other stable hook for
 native-widget structure/state, only for the leaf checkmark/thumb which
 come from React Aria). But it's still an internal Streamlit convention,
-not a public API — Streamlit can rename these between versions with no
+not a public API Streamlit can rename these between versions with no
 changelog entry, and the breakage is SILENT: nothing throws, the CSS
 rule just stops matching. This happened for real during development —
 "stLogo" became "stSidebarLogo"/"stHeaderLogo" at some point, and the
 topbar quietly started rendering underneath a stray re-injected logo
 until someone noticed by eye.
 
-This test doesn't render a real page (no browser dependency) — it
+This test doesn't render a real page (no browser dependency), it
 greps Streamlit's own bundled frontend JS for each testid string the
 kit's CSS actually selects on, extracted straight from ge_design_kit's
 source so this test can't silently drift from what the CSS really
