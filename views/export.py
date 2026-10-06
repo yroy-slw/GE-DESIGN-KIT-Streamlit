@@ -1,7 +1,7 @@
 """
 views/export.py
 ------------------
-Page "Exporter" - même pattern que comparaison.py : lit
+Page "Exporter" - même pattern que comparaison.py: lit
 st.session_state.selected_operation_ids, refetch les vraies données
 par id (cf. data.py) plutôt que de recevoir les lignes en état.
 """
@@ -20,7 +20,7 @@ st.title("Exporter des opérations")
 selected_ids = st.session_state.get("selected_operation_ids", [])
 
 if not selected_ids:
-    # Pas de surface ici : rien à mettre dedans, l'alerte seule suffit
+    # Pas de surface ici: rien à mettre dedans, l'alerte seule suffit
     # (cf. views/comparaison.py, même choix).
     st.warning(
         "Aucune opération sélectionnée. Retournez à la page "
@@ -34,7 +34,6 @@ else:
         st.write(f"**{len(export_df)} opération(s) prête(s) à l'export :**")
         st.dataframe(export_df, hide_index=True, width="stretch")
         # Action principale de l'écran -> bouton filled (M3), pas outlined
-        # (cf. Figma node 245:1828 "MD_Filled Button").
         with st.container(key=f"{FILLED_BUTTON_KEY_PREFIX}download_csv"):
             st.download_button(
                 "Télécharger en csv",

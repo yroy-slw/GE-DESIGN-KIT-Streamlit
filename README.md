@@ -17,10 +17,18 @@ Le kit n'est pas un package pip, copier le dossier `ge_design_kit/`, `assets/` e
 
 ---
 
+## Lancer l'application
+
+```bash
+streamlit run app.py --server.port 8501
+```
+
+---
+
 ## Galerie de composants
 
 ```bash
-streamlit run gallery.py
+streamlit run gallery.py --server.port 8502
 ```
 
 Outil de développement autonome (pas une page de l'app) : rendu réel
@@ -122,16 +130,16 @@ pip install -r requirements-dev.txt
 pytest tests/
 ```
 
-Un seul test pour l'instant : `tests/test_data_testid_smoke.py`. Le kit
+Un seul test pour l'instant: `tests/test_data_testid_smoke.py`. Le kit
 style les widgets natifs Streamlit via des sélecteurs `[data-testid="..."]`
-(cf. Pièges à connaître ci-dessus) — une convention interne à Streamlit,
+(cf. Pièges à connaître ci-dessus), une convention interne à Streamlit,
 pas une API publique, qui peut changer de nom d'une version à l'autre
 sans erreur ni changelog (déjà arrivé : `stLogo` est devenu
 `stSidebarLogo`/`stHeaderLogo`, et le topbar s'est mis à se faire
 chevaucher silencieusement par le logo, sans qu'aucune exception ne
 soit levée nulle part). Ce test grep le bundle JS de Streamlit
 installé pour vérifier que chaque `data-testid` dont le kit dépend
-existe encore — sans navigateur, en ~0.3s — pour transformer un futur
+existe encore, sans navigateur, en ~0.3s — pour transformer un futur
 renommage silencieux en échec de test immédiat plutôt qu'en régression
 visuelle découverte par hasard.
 
